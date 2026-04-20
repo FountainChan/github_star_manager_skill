@@ -174,6 +174,47 @@ mutation AddToList($itemId: ID!, $listIds: [ID!]!) {
 }
 ```
 
+## 文件命名与匹配规则
+
+### Vault 文件命名格式
+
+仓库摘要文件使用 `{owner}_{repo}.md` 格式，其中：
+- `{owner}` 是仓库所有者名称
+- `{repo}` 是仓库名称
+- `/` 替换为 `_`
+
+示例：
+| GitHub 完整名称 | Vault 文件名 |
+|---------------|-------------|
+| OpenMOSS/MOSS-TTS-Nano | OpenMOSS_MOSS-TTS-Nano.md |
+| datawhalechina/hello-agents | datawhalechina_hello-agents.md |
+| anomalyco/opencode | anomalyco_opencode.md |
+
+### 增量同步匹配逻辑
+
+**重要**：匹配时不能简单地将 `owner/repo` 转换为 `owner_repo` 来比较。
+
+正确匹配逻辑（伪代码）：
+```python
+# 获取 GitHub starred 仓库列表（每行一个 owner/repo）
+github_repos = ["OpenMOSS/MOSS-TTS-Nano", "datawhalechina/hello-agents", ...]
+
+# 获取 vault 中所有已处理的仓库文件名（不含 .md 扩展名）
+vault_files = ["OpenMOSS_MOSS-TTS-Nano", "datawhalechina_hello-agents", ...]
+
+# 匹配：将 owner/repo 转换为 owner_repo 格式后比较
+for gh_repo in github_repos:
+    # 例如 "OpenMOSS/MOSS-TTS-Nano" → "OpenMOSS_MOSS-TTS-Nano"
+    vault_name = gh_repo.replace('/', '_')
+    if vault_name not in vault_files:
+        # 这是一个需要同步的新仓库
+```
+
+**关键点**：
+- Vault 文件名使用下划线 `_` 替代斜杠 `/`
+- 匹配时需将 GitHub 的 `owner/repo` 格式转换为 `owner_repo` 格式
+- 例如 `OpenMOSS/MOSS-TTS-Nano` → `OpenMOSS_MOSS-TTS-Nano`
+
 ## 错误处理
 
 - 单个仓库获取 README 失败 → 跳过 README，基于 description 生成摘要
